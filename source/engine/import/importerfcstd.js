@@ -5,10 +5,10 @@ import { GetExternalLibPath } from '../io/externallibs.js';
 import { ConvertThreeGeometryToMesh } from '../threejs/threeutils.js';
 import { ArrayBufferToUtf8String } from '../io/bufferutils.js';
 import { Node, NodeType } from '../model/node.js';
+import { ColorToMaterialConverter } from './importerutils.js';
+import { RGBAColor } from '../model/color.js';
 
 import * as fflate from 'fflate';
-
-// TODO: apply placement from Document.xml for objects
 
 const DocumentInitResult =
 {
@@ -24,6 +24,7 @@ class FreeCadObject
         this.type = type;
         this.shapeName = null;
         this.isVisible = false;
+        this.color = null;
         this.fileName = null;
         this.fileContent = null;
         this.inLinkCount = 0;
@@ -187,6 +188,15 @@ class FreeCadDocument
                 if (propertyName === 'Visibility') {
                     let isVisibleString = this.GetFirstChildValue (propertyElement, 'Bool', 'value');
                     object.isVisible = (isVisibleString === 'true');
+                } else if (propertyName === 'ShapeColor') {
+                    let colorString = this.GetFirstChildValue (propertyElement, 'PropertyColor', 'value');
+                    let rgba = parseInt (colorString, 10);
+                    object.color = new RGBAColor (
+                        rgba >> 24 & 0xff,
+                        rgba >> 16 & 0xff,
+                        rgba >> 8 & 0xff,
+                        255
+                    );
                 }
             }
         }
@@ -267,10 +277,11 @@ export class ImporterFcstd extends ImporterBase
         this.worker = new Worker (workerPath);
 
         let convertedObjectCount = 0;
+        let colorToMaterial = new ColorToMaterialConverter (this.model);
         let onFileConverted = (resultContent) => {
             if (resultContent !== null) {
                 let currentObject = objects[convertedObjectCount];
-                this.OnFileConverted (currentObject, resultContent);
+                this.OnFileConverted (currentObject, resultContent, colorToMaterial);
             }
             convertedObjectCount += 1;
             if (convertedObjectCount === objects.length) {
@@ -299,7 +310,7 @@ export class ImporterFcstd extends ImporterBase
         });
     }
 
-    OnFileConverted (object, resultContent)
+    OnFileConverted (object, resultContent, colorToMaterial)
     {
         if (!resultContent.success || resultContent.meshes.length === 0) {
             return;
@@ -313,7 +324,16 @@ export class ImporterFcstd extends ImporterBase
 
         let objectMeshIndex = 1;
         for (let resultMesh of resultContent.meshes) {
-            let mesh = ConvertThreeGeometryToMesh (resultMesh, null);
+            let materialIndex = null;
+            if (object.color !== null) {
+                materialIndex = colorToMaterial.GetMaterialIndex (
+                    object.color.r,
+                    object.color.g,
+                    object.color.b,
+                    object.color.a
+                );
+            }
+            let mesh = ConvertThreeGeometryToMesh (resultMesh, materialIndex);
             if (object.shapeName !== null) {
                 let indexString = objectMeshIndex.toString ().padStart (3, '0');
                 mesh.SetName (object.shapeName + ' ' + indexString);
