@@ -26,7 +26,7 @@ class FreeCadObject
         this.isVisible = false;
         this.fileName = null;
         this.fileContent = null;
-        this.dependents = [];
+        this.inLinkCount = 0;
     }
 
     IsConvertible ()
@@ -37,7 +37,7 @@ class FreeCadObject
         if (!this.isVisible) {
             return false;
         }
-        if (this.dependents.length > 0) {
+        if (this.inLinkCount > 0) {
             return false; // TODO: is this correct?
         }
         return true;
@@ -80,7 +80,14 @@ class FreeCadDocument
 
     IsSupportedType (type)
     {
-        return type.startsWith ('Part');
+        // TODO: is this correct?
+        if (!type.startsWith ('Part::') && !type.startsWith ('PartDesign::')) {
+            return false;
+        }
+        if (type.indexOf ('Part2D') !== -1) {
+            return false;
+        }
+        return true;
     }
 
     HasFile (fileName)
@@ -149,7 +156,8 @@ class FreeCadDocument
                 for (let linkElement of linkElements) {
                     let linkedName = linkElement.getAttribute ('value');
                     if (this.objectData.has (linkedName)) {
-                        this.objectData.get (linkedName).dependents.push (name);
+                        let linkedObject = this.objectData.get (linkedName);
+                        linkedObject.inLinkCount += 1;
                     }
                 }
             }
