@@ -99,10 +99,16 @@ export class ImporterFcstd extends ImporterBase
             objectNode.SetName (object.shapeName);
         }
         objectNode.SetType (NodeType.GroupNode);
+        let objectMeshIndex = 1;
         for (let resultMesh of resultContent.meshes) {
             let mesh = ConvertThreeGeometryToMesh (resultMesh, null);
+            if (object.shapeName !== null) {
+                let indexString = objectMeshIndex.toString ().padStart (3, '0');
+                mesh.SetName (object.shapeName + ' ' + indexString);
+            }
             let meshIndex = this.model.AddMesh (mesh);
             objectNode.AddMeshIndex (meshIndex);
+            objectMeshIndex += 1;
         }
         let rootNode = this.model.GetRootNode ();
         rootNode.AddChildNode (objectNode);
