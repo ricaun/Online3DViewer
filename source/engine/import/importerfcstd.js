@@ -8,6 +8,9 @@ import { Node, NodeType } from '../model/node.js';
 
 import * as fflate from 'fflate';
 
+// TODO: get visibility from GuiDocument.xml (does the root object finding still needed?)
+// TODO: apply placement from Document.xml for objects
+
 export class ImporterFcstd extends ImporterBase
 {
     constructor ()
