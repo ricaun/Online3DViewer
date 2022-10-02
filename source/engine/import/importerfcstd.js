@@ -71,7 +71,7 @@ export class ImporterFcstd extends ImporterBase
                     buffer : currentObject.fileContent
                 });
             }
-        }
+        };
 
         this.worker.addEventListener ('message', (ev) => {
             onFileConverted (ev.data);
@@ -155,13 +155,16 @@ export class ImporterFcstd extends ImporterBase
                     } else if (propertyName === 'Visibility') {
                         let isVisibleString = GetFirstChildValue (propertyObject, 'Bool', 'value');
                         objectData.isVisible = (isVisibleString === 'true');
+                    } else if (propertyName === 'Visible') {
+                        let isVisibleString = GetFirstChildValue (propertyObject, 'Bool', 'value');
+                        objectData.isVisible = (isVisibleString === 'true');
                     } else if (propertyName === 'Shape') {
                         let fileName = GetFirstChildValue (propertyObject, 'Part', 'file');
                         if (!(fileName in decompressedFiles)) {
                             continue;
                         }
                         let extension = GetFileExtension (fileName);
-                        if (extension != 'brp' && extension != 'brep') {
+                        if (extension !== 'brp' && extension !== 'brep') {
                             continue;
                         }
                         objectData.fileName = fileName;
@@ -198,10 +201,6 @@ export class ImporterFcstd extends ImporterBase
 
     GetRootObjectsFromDocumentXml (documentXml)
     {
-        function IsPartObject (objectType) {
-            return objectType.startsWith ('Part');
-        }
-
         let partObjects = new Set ();
         let rootObjects = new Set ();
 
@@ -211,7 +210,8 @@ export class ImporterFcstd extends ImporterBase
             for (let objectElem of objectElems) {
                 let objectName = objectElem.getAttribute ('name');
                 let objectType = objectElem.getAttribute ('type');
-                if (IsPartObject (objectType)) {
+                let isPartObject = objectType.startsWith ('Part');
+                if (isPartObject) {
                     rootObjects.add (objectName);
                     partObjects.add (objectName);
                 }
