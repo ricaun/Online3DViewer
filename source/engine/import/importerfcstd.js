@@ -29,7 +29,7 @@ export class ImporterFcstd extends ImporterBase
 	ClearContent ()
 	{
         if (this.worker !== null) {
-            //this.worker.terminate ();
+            this.worker.terminate ();
             this.worker = null;
         }
 	}
@@ -119,8 +119,6 @@ export class ImporterFcstd extends ImporterBase
             return childObjects[0].getAttribute (childAttribute);
         }
 
-        // TODO: consider only part type objects
-
         let objectsToImport = [];
         let fileContentBuffer = new Uint8Array (fileContent);
         let decompressedFiles = fflate.unzipSync (fileContentBuffer);
@@ -143,6 +141,7 @@ export class ImporterFcstd extends ImporterBase
 
                 let objectData = {
                     shapeId : objectName,
+                    isVisible : true,
                     shapeName : null,
                     fileName : null,
                     fileContent : null
@@ -153,6 +152,9 @@ export class ImporterFcstd extends ImporterBase
                     let propertyName = propertyObject.getAttribute ('name');
                     if (propertyName === 'Label') {
                         objectData.shapeName = GetFirstChildValue (propertyObject, 'String', 'value');
+                    } else if (propertyName === 'Visibility') {
+                        let isVisibleString = GetFirstChildValue (propertyObject, 'Bool', 'value');
+                        objectData.isVisible = (isVisibleString === 'true');
                     } else if (propertyName === 'Shape') {
                         let fileName = GetFirstChildValue (propertyObject, 'Part', 'file');
                         if (!(fileName in decompressedFiles)) {
@@ -167,7 +169,7 @@ export class ImporterFcstd extends ImporterBase
                     }
                 }
 
-                if (objectData.fileContent === null) {
+                if (!objectData.isVisible || objectData.fileContent === null) {
                     continue;
                 }
                 objectsToImport.push (objectData);
@@ -196,23 +198,40 @@ export class ImporterFcstd extends ImporterBase
 
     GetRootObjectsFromDocumentXml (documentXml)
     {
+        function IsPartObject (objectType) {
+            return objectType.startsWith ('Part');
+        }
+
+        let partObjects = new Set ();
         let rootObjects = new Set ();
 
         let objectsElems = documentXml.getElementsByTagName ('Objects');
         for (let objectsElem of objectsElems) {
             let objectElems = objectsElem.getElementsByTagName ('Object');
             for (let objectElem of objectElems) {
-                rootObjects.add (objectElem.getAttribute ('name'));
+                let objectName = objectElem.getAttribute ('name');
+                let objectType = objectElem.getAttribute ('type');
+                if (IsPartObject (objectType)) {
+                    rootObjects.add (objectName);
+                    partObjects.add (objectName);
+                }
             }
         }
 
         let objectDataElems = documentXml.getElementsByTagName ('ObjectData');
         for (let objectDataElem of objectDataElems) {
-            let linkElems = objectDataElem.getElementsByTagName ('Link');
-            for (let linkElem of linkElems) {
-                let linkedObject = linkElem.getAttribute ('value');
-                if (rootObjects.has (linkedObject)) {
-                    rootObjects.delete (linkedObject);
+            let objectElems = objectDataElem.getElementsByTagName ('Object');
+            for (let objectElem of objectElems) {
+                let objectName = objectElem.getAttribute ('name');
+                if (!partObjects.has (objectName)) {
+                    continue;
+                }
+                let linkElems = objectElem.getElementsByTagName ('Link');
+                for (let linkElem of linkElems) {
+                    let linkedObject = linkElem.getAttribute ('value');
+                    if (rootObjects.has (linkedObject)) {
+                        rootObjects.delete (linkedObject);
+                    }
                 }
             }
         }
