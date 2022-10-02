@@ -8,8 +8,204 @@ import { Node, NodeType } from '../model/node.js';
 
 import * as fflate from 'fflate';
 
-// TODO: get visibility from GuiDocument.xml (does the root object finding still needed?)
 // TODO: apply placement from Document.xml for objects
+
+const DocumentInitResult =
+{
+    Success : 0,
+    NoDocumentXml : 1
+};
+
+class FreeCadObject
+{
+    constructor (name, type)
+    {
+        this.name = name;
+        this.type = type;
+        this.shapeName = null;
+        this.isVisible = false;
+        this.fileName = null;
+        this.fileContent = null;
+        this.dependents = [];
+    }
+
+    IsConvertible ()
+    {
+        if (this.fileName === null || this.fileContent === null) {
+            return false;
+        }
+        if (!this.isVisible) {
+            return false;
+        }
+        if (this.dependents.length > 0) {
+            return false; // TODO: is this correct?
+        }
+        return true;
+    }
+}
+
+class FreeCadDocument
+{
+    constructor ()
+    {
+        this.files = null;
+        this.objectNames = [];
+        this.objectData = new Map ();
+    }
+
+    Init (fileContent)
+    {
+        let fileContentBuffer = new Uint8Array (fileContent);
+        this.files = fflate.unzipSync (fileContentBuffer);
+        if (!this.LoadDocumentXml ()) {
+            return DocumentInitResult.NoDocumentXml;
+        }
+
+        this.LoadGuiDocumentXml ();
+        return DocumentInitResult.Success;
+    }
+
+    GetObjectListToConvert ()
+    {
+        let objectList = [];
+        for (let objectName of this.objectNames) {
+            let object = this.objectData.get (objectName);
+            if (!object.IsConvertible ()) {
+                continue;
+            }
+            objectList.push (object);
+        }
+        return objectList;
+    }
+
+    IsSupportedType (type)
+    {
+        return type.startsWith ('Part');
+    }
+
+    HasFile (fileName)
+    {
+        return (fileName in this.files);
+    }
+
+    LoadDocumentXml ()
+    {
+        let documentXml = this.GetXMLContent ('Document.xml');
+        if (documentXml === null) {
+            return false;
+        }
+
+        let objectsElements = documentXml.getElementsByTagName ('Objects');
+        for (let objectsElement of objectsElements) {
+            let objectElements = objectsElement.getElementsByTagName ('Object');
+            for (let objectElement of objectElements) {
+                let name = objectElement.getAttribute ('name');
+                let type = objectElement.getAttribute ('type');
+                if (!this.IsSupportedType (type)) {
+                    continue;
+                }
+                let object = new FreeCadObject (name, type);
+                this.objectNames.push (name);
+                this.objectData.set (name, object);
+            }
+        }
+
+        let objectDataElements = documentXml.getElementsByTagName ('ObjectData');
+        for (let objectDataElement of objectDataElements) {
+            let objectElements = objectDataElement.getElementsByTagName ('Object');
+            for (let objectElement of objectElements) {
+                let name = objectElement.getAttribute ('name');
+                if (!this.objectData.has (name)) {
+                    continue;
+                }
+
+                let object = this.objectData.get (name);
+                let propertyElements = objectElement.getElementsByTagName ('Property');
+                for (let propertyElement of propertyElements) {
+                    let propertyName = propertyElement.getAttribute ('name');
+                    if (propertyName === 'Label') {
+                        object.shapeName = this.GetFirstChildValue (propertyElement, 'String', 'value');
+                    } else if (propertyName === 'Visibility') {
+                        let isVisibleString = this.GetFirstChildValue (propertyElement, 'Bool', 'value');
+                        object.isVisible = (isVisibleString === 'true');
+                    } else if (propertyName === 'Visible') {
+                        let isVisibleString = this.GetFirstChildValue (propertyElement, 'Bool', 'value');
+                        object.isVisible = (isVisibleString === 'true');
+                    } else if (propertyName === 'Shape') {
+                        let fileName = this.GetFirstChildValue (propertyElement, 'Part', 'file');
+                        if (!this.HasFile (fileName)) {
+                            continue;
+                        }
+                        let extension = GetFileExtension (fileName);
+                        if (extension !== 'brp' && extension !== 'brep') {
+                            continue;
+                        }
+                        object.fileName = fileName;
+                        object.fileContent = this.files[fileName];
+                    }
+                }
+
+                let linkElements = objectElement.getElementsByTagName ('Link');
+                for (let linkElement of linkElements) {
+                    let linkedName = linkElement.getAttribute ('value');
+                    if (this.objectData.has (linkedName)) {
+                        this.objectData.get (linkedName).dependents.push (name);
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    LoadGuiDocumentXml ()
+    {
+        let documentXml = this.GetXMLContent ('GuiDocument.xml');
+        if (documentXml === null) {
+            return false;
+        }
+
+        let viewProviderElements = documentXml.getElementsByTagName ('ViewProvider');
+        for (let viewProviderElement of viewProviderElements) {
+            let name = viewProviderElement.getAttribute ('name');
+            if (!this.objectData.has (name)) {
+                continue;
+            }
+
+            let object = this.objectData.get (name);
+            let propertyElements = viewProviderElement.getElementsByTagName ('Property');
+            for (let propertyElement of propertyElements) {
+                let propertyName = propertyElement.getAttribute ('name');
+                if (propertyName === 'Visibility') {
+                    let isVisibleString = this.GetFirstChildValue (propertyElement, 'Bool', 'value');
+                    object.isVisible = (isVisibleString === 'true');
+                }
+            }
+        }
+
+        return true;
+    }
+
+    GetXMLContent (xmlFileName)
+    {
+        if (!this.HasFile (xmlFileName)) {
+            return null;
+        }
+
+        let xmlParser = new DOMParser ();
+        let xmlString = ArrayBufferToUtf8String (this.files[xmlFileName]);
+        return xmlParser.parseFromString (xmlString, 'text/xml');
+    }
+
+    GetFirstChildValue (element, childTagName, childAttribute)
+    {
+        let childObjects = element.getElementsByTagName (childTagName);
+        if (childObjects.length === 0) {
+            return null;
+        }
+        return childObjects[0].getAttribute (childAttribute);
+    }
+}
 
 export class ImporterFcstd extends ImporterBase
 {
@@ -17,6 +213,7 @@ export class ImporterFcstd extends ImporterBase
     {
         super ();
         this.worker = null;
+        this.document = null;
     }
 
     CanImportExtension (extension)
@@ -35,22 +232,25 @@ export class ImporterFcstd extends ImporterBase
             this.worker.terminate ();
             this.worker = null;
         }
+        this.document = null;
 	}
 
     ResetContent ()
     {
         this.worker = null;
+        this.document = new FreeCadDocument ();
     }
 
     ImportContent (fileContent, onFinish)
     {
-        let objectsToImport = this.CollectObjectsToImport (fileContent);
-        if (objectsToImport.length === 0) {
+        let result = this.document.Init (fileContent);
+        if (result === DocumentInitResult.NoDocumentXml) {
+            this.SetError ('No Document.xml found.');
             onFinish ();
             return;
         }
-
-        this.ConvertObjects (objectsToImport, onFinish);
+        let objectsToConvert = this.document.GetObjectListToConvert ();
+        this.ConvertObjects (objectsToConvert, onFinish);
     }
 
     ConvertObjects (objects, onFinish)
@@ -117,136 +317,5 @@ export class ImporterFcstd extends ImporterBase
 
         let rootNode = this.model.GetRootNode ();
         rootNode.AddChildNode (objectNode);
-    }
-
-    CollectObjectsToImport (fileContent)
-    {
-        function GetFirstChildValue (element, childTagName, childAttribute)
-        {
-            let childObjects = element.getElementsByTagName (childTagName);
-            if (childObjects.length === 0) {
-                return null;
-            }
-            return childObjects[0].getAttribute (childAttribute);
-        }
-
-        let objectsToImport = [];
-        let fileContentBuffer = new Uint8Array (fileContent);
-        let decompressedFiles = fflate.unzipSync (fileContentBuffer);
-
-        let documentXml = this.GetXMLContent (decompressedFiles, 'Document.xml');
-        if (documentXml === null) {
-            this.SetError ('No Document.xml found.');
-            return objectsToImport;
-        }
-
-        let rootObjects = this.GetRootObjectsFromDocumentXml (documentXml);
-        let objectDataElems = documentXml.getElementsByTagName ('ObjectData');
-        for (let objectDataElem of objectDataElems) {
-            let objectElems = objectDataElem.getElementsByTagName ('Object');
-            for (let objectElem of objectElems) {
-                let objectName = objectElem.getAttribute ('name');
-                if (!rootObjects.has (objectName)) {
-                    continue;
-                }
-
-                let objectData = {
-                    shapeId : objectName,
-                    isVisible : true,
-                    shapeName : null,
-                    fileName : null,
-                    fileContent : null
-                };
-
-                let propertyObjects = objectElem.getElementsByTagName ('Property');
-                for (let propertyObject of propertyObjects) {
-                    let propertyName = propertyObject.getAttribute ('name');
-                    if (propertyName === 'Label') {
-                        objectData.shapeName = GetFirstChildValue (propertyObject, 'String', 'value');
-                    } else if (propertyName === 'Visibility') {
-                        let isVisibleString = GetFirstChildValue (propertyObject, 'Bool', 'value');
-                        objectData.isVisible = (isVisibleString === 'true');
-                    } else if (propertyName === 'Visible') {
-                        let isVisibleString = GetFirstChildValue (propertyObject, 'Bool', 'value');
-                        objectData.isVisible = (isVisibleString === 'true');
-                    } else if (propertyName === 'Shape') {
-                        let fileName = GetFirstChildValue (propertyObject, 'Part', 'file');
-                        if (!(fileName in decompressedFiles)) {
-                            continue;
-                        }
-                        let extension = GetFileExtension (fileName);
-                        if (extension !== 'brp' && extension !== 'brep') {
-                            continue;
-                        }
-                        objectData.fileName = fileName;
-                        objectData.fileContent = decompressedFiles[fileName];
-                    }
-                }
-
-                if (!objectData.isVisible || objectData.fileContent === null) {
-                    continue;
-                }
-                objectsToImport.push (objectData);
-            }
-        }
-
-        if (objectsToImport.length === 0) {
-            this.SetError ('No objects found for import.');
-            return objectsToImport;
-        }
-
-        return objectsToImport;
-    }
-
-    GetXMLContent (decompressedFiles, xmlFileName)
-    {
-        let documentXmlName = 'Document.xml';
-        if (!(xmlFileName in decompressedFiles)) {
-            return null;
-        }
-
-        let xmlParser = new DOMParser ();
-        let xmlString = ArrayBufferToUtf8String (decompressedFiles[documentXmlName]);
-        return xmlParser.parseFromString (xmlString, 'text/xml');
-    }
-
-    GetRootObjectsFromDocumentXml (documentXml)
-    {
-        let partObjects = new Set ();
-        let rootObjects = new Set ();
-
-        let objectsElems = documentXml.getElementsByTagName ('Objects');
-        for (let objectsElem of objectsElems) {
-            let objectElems = objectsElem.getElementsByTagName ('Object');
-            for (let objectElem of objectElems) {
-                let objectName = objectElem.getAttribute ('name');
-                let objectType = objectElem.getAttribute ('type');
-                let isPartObject = objectType.startsWith ('Part');
-                if (isPartObject) {
-                    rootObjects.add (objectName);
-                    partObjects.add (objectName);
-                }
-            }
-        }
-
-        let objectDataElems = documentXml.getElementsByTagName ('ObjectData');
-        for (let objectDataElem of objectDataElems) {
-            let objectElems = objectDataElem.getElementsByTagName ('Object');
-            for (let objectElem of objectElems) {
-                let objectName = objectElem.getAttribute ('name');
-                if (!partObjects.has (objectName)) {
-                    continue;
-                }
-                let linkElems = objectElem.getElementsByTagName ('Link');
-                for (let linkElem of linkElems) {
-                    let linkedObject = linkElem.getAttribute ('value');
-                    if (rootObjects.has (linkedObject)) {
-                        rootObjects.delete (linkedObject);
-                    }
-                }
-            }
-        }
-
-        return rootObjects;
     }
 }
