@@ -90,15 +90,16 @@ export class ImporterFcstd extends ImporterBase
 
     OnFileConverted (object, resultContent)
     {
-        if (!resultContent.success) {
+        if (!resultContent.success || resultContent.meshes.length === 0) {
             return;
         }
 
         let objectNode = new Node ();
+        objectNode.SetType (NodeType.GroupNode);
         if (object.shapeName !== null) {
             objectNode.SetName (object.shapeName);
         }
-        objectNode.SetType (NodeType.GroupNode);
+
         let objectMeshIndex = 1;
         for (let resultMesh of resultContent.meshes) {
             let mesh = ConvertThreeGeometryToMesh (resultMesh, null);
@@ -110,6 +111,7 @@ export class ImporterFcstd extends ImporterBase
             objectNode.AddMeshIndex (meshIndex);
             objectMeshIndex += 1;
         }
+
         let rootNode = this.model.GetRootNode ();
         rootNode.AddChildNode (objectNode);
     }
