@@ -7,6 +7,7 @@ import { ArrayBufferToUtf8String } from '../io/bufferutils.js';
 import { Node, NodeType } from '../model/node.js';
 import { ColorToMaterialConverter } from './importerutils.js';
 import { RGBAColor } from '../model/color.js';
+import { Property, PropertyGroup, PropertyType } from '../model/property.js';
 
 import * as fflate from 'fflate';
 
@@ -28,6 +29,7 @@ class FreeCadObject
         this.fileName = null;
         this.fileContent = null;
         this.inLinkCount = 0;
+        this.properties = null;
     }
 
     IsConvertible ()
@@ -39,7 +41,7 @@ class FreeCadObject
             return false;
         }
         if (this.inLinkCount > 0) {
-            return false; // TODO: is this correct?
+            return false;
         }
         return true;
     }
@@ -50,6 +52,7 @@ class FreeCadDocument
     constructor ()
     {
         this.files = null;
+        this.properties = null;
         this.objectNames = [];
         this.objectData = new Map ();
     }
@@ -81,7 +84,6 @@ class FreeCadDocument
 
     IsSupportedType (type)
     {
-        // TODO: is this correct?
         if (!type.startsWith ('Part::') && !type.startsWith ('PartDesign::')) {
             return false;
         }
@@ -101,6 +103,16 @@ class FreeCadDocument
         let documentXml = this.GetXMLContent ('Document.xml');
         if (documentXml === null) {
             return false;
+        }
+
+        this.properties = new PropertyGroup ('Properties');
+        let documentElements = documentXml.getElementsByTagName ('Document');
+        for (let documentElement of documentElements) {
+            for (let childNode of documentElement.childNodes) {
+                if (childNode.tagName === 'Properties') {
+                    this.GetPropertiesFromElement (childNode, this.properties);
+                }
+            }
         }
 
         let objectsElements = documentXml.getElementsByTagName ('Objects');
@@ -128,6 +140,13 @@ class FreeCadDocument
                 }
 
                 let object = this.objectData.get (name);
+                object.properties = new PropertyGroup ('Properties');
+                for (let childNode of objectElement.childNodes) {
+                    if (childNode.tagName === 'Properties') {
+                        this.GetPropertiesFromElement (childNode, object.properties);
+                    }
+                }
+
                 let propertyElements = objectElement.getElementsByTagName ('Property');
                 for (let propertyElement of propertyElements) {
                     let propertyName = propertyElement.getAttribute ('name');
@@ -204,6 +223,46 @@ class FreeCadDocument
         return true;
     }
 
+    GetPropertiesFromElement (propertiesElement, propertyGroup)
+    {
+        let propertyElements = propertiesElement.getElementsByTagName ('Property');
+        for (let propertyElement of propertyElements) {
+            let propertyName = propertyElement.getAttribute ('name');
+            let propertyType = propertyElement.getAttribute ('type');
+
+            let property = null;
+            if (propertyType === 'App::PropertyBool') {
+                let propertyValue = this.GetFirstChildValue (propertyElement, 'String', 'bool');
+                if (propertyValue !== null && propertyValue.length > 0) {
+                    property = new Property (PropertyType.Boolean, propertyName, propertyValue === 'true');
+                }
+            } else if (propertyType === 'App::PropertyInteger') {
+                let propertyValue = this.GetFirstChildValue (propertyElement, 'Integer', 'value');
+                if (propertyValue !== null && propertyValue.length > 0) {
+                    property = new Property (PropertyType.Integer, propertyName, parseInt (propertyValue));
+                }
+            } else if (propertyType === 'App::PropertyString') {
+                let propertyValue = this.GetFirstChildValue (propertyElement, 'String', 'value');
+                if (propertyValue !== null && propertyValue.length > 0) {
+                    property = new Property (PropertyType.Text, propertyName, propertyValue);
+                }
+            } else if (propertyType === 'App::PropertyUUID') {
+                let propertyValue = this.GetFirstChildValue (propertyElement, 'Uuid', 'value');
+                if (propertyValue !== null && propertyValue.length > 0) {
+                    property = new Property (PropertyType.Text, propertyName, propertyValue);
+                }
+            } else if (propertyType === 'App::PropertyFloat' || propertyType === 'App::PropertyLength' || propertyType === 'App::PropertyDistance' || propertyType === 'App::PropertyArea' || propertyType === 'App::PropertyVolume') {
+                let propertyValue = this.GetFirstChildValue (propertyElement, 'Float', 'value');
+                if (propertyValue !== null && propertyValue.length > 0) {
+                    property = new Property (PropertyType.Number, propertyName, parseFloat (propertyValue));
+                }
+            }
+            if (property !== null) {
+                propertyGroup.AddProperty (property);
+            }
+        }
+    }
+
     GetXMLContent (xmlFileName)
     {
         if (!this.HasFile (xmlFileName)) {
@@ -267,6 +326,11 @@ export class ImporterFcstd extends ImporterBase
             onFinish ();
             return;
         }
+
+        if (this.document.properties !== null && this.document.properties.PropertyCount () > 0) {
+            this.model.AddPropertyGroup (this.document.properties);
+        }
+
         let objectsToConvert = this.document.GetObjectListToConvert ();
         this.ConvertObjects (objectsToConvert, onFinish);
     }
@@ -338,6 +402,11 @@ export class ImporterFcstd extends ImporterBase
                 let indexString = objectMeshIndex.toString ().padStart (3, '0');
                 mesh.SetName (object.shapeName + ' ' + indexString);
             }
+
+            if (object.properties !== null && object.properties.PropertyCount () > 0) {
+                mesh.AddPropertyGroup (object.properties);
+            }
+
             let meshIndex = this.model.AddMesh (mesh);
             objectNode.AddMeshIndex (meshIndex);
             objectMeshIndex += 1;
