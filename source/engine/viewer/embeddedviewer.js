@@ -7,8 +7,33 @@ import { ParameterConverter } from '../parameters/parameterlist.js';
 import { ThreeModelLoader } from '../threejs/threemodelloader.js';
 import { Viewer } from './viewer.js';
 
+/**
+ * This is the main entry point for embedding the viewer on a website.
+ *
+ */
 export class EmbeddedViewer
 {
+    /**
+     * @param {*} parentElement The parent element for the viewer canvas. It must be an existing
+     * DOM element element and it will be the container for the viewer. The size of the viewer
+     * will be automatically adjusted to the size of the parent element.
+     * @param {*} parameters Parameter object for embedding.
+     * - camera ({@link Camera}): Camera properties to use. If not specified, the default camera will be used and
+     * the model will be fitted to the window.
+     * - cameraMode ({@link CameraMode}): Either CameraMode.Perspective or CameraMode.Orthographic. The
+     * default is perspective.
+     * - backgroundColor ({@link RGBAColor}): Background color of the canvas.
+     * - defaultColor ({@link RGBColor}): Default color of the model. It has effect only if the imported model
+     * doesn't specify any color.
+     * - edgeSettings (Object):
+     *   - showEdges (Boolean): Show edges.
+     *   - edgeColor ({@link RGBColor}): Color of the edges.
+     *   - edgeThreshold (Number): Minimum angle between faces to show edges between them.
+     * - environmentSettings (Object):
+     *   - environmentMap (String[]): Urls of the environment map images in this order: posx, negx, posy, negy, posz, negz.
+     *   - backgroundIsEnvMap (Boolean): Use background as environment map.
+     * - onModelLoaded (Function): Callback that is called when to model is fully loaded.
+     */
     constructor (parentElement, parameters)
     {
         this.parentElement = parentElement;
@@ -57,6 +82,10 @@ export class EmbeddedViewer
         });
     }
 
+    /**
+     * Loads the model based on the given urls.
+     * @param {String[]} modelUrls Urls of all files connected to the object.
+     */
     LoadModelFromUrlList (modelUrls)
     {
         TransformFileHostUrls (modelUrls);
