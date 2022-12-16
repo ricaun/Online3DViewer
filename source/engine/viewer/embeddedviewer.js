@@ -8,8 +8,7 @@ import { ThreeModelLoader } from '../threejs/threemodelloader.js';
 import { Viewer } from './viewer.js';
 
 /**
- * This is the main entry point for embedding the viewer on a website.
- *
+ * This is the main object for embedding the viewer on a website.
  */
 export class EmbeddedViewer
 {
@@ -83,8 +82,9 @@ export class EmbeddedViewer
     }
 
     /**
-     * Loads the model based on the given urls.
-     * @param {String[]} modelUrls Urls of all files connected to the object.
+     * Loads the model based on a list of urls. The list must contain the main model file
+     * and all of the referenced files.
+     * @param {String[]} modelUrls Url list of model files.
      */
     LoadModelFromUrlList (modelUrls)
     {
@@ -93,16 +93,28 @@ export class EmbeddedViewer
         this.LoadModelFromInputFiles (inputFiles);
     }
 
+    /**
+     * Loads the model based on a file list. The list must contain the main model file
+     * and all of the referenced files. You must use this method used when you are using
+     * a file picker to select files from your computer.
+     * @param {File[]} fileList File Object list of model files.
+     */
     LoadModelFromFileList (fileList)
     {
         let inputFiles = InputFilesFromFileObjects (fileList);
         this.LoadModelFromInputFiles (inputFiles);
     }
 
+    /**
+     * Loads the model based on a list of {@link InputFile} objects. This method is used
+     * internally, you should use [LoadModelFromUrlList]{@link EmbeddedViewer#LoadModelFromUrlList} or
+     * [LoadModelFromFileList]{@link EmbeddedViewer#LoadModelFromFileList} instead.
+     * @param {InputFile[]} inputFiles List of model files.
+     */
     LoadModelFromInputFiles (inputFiles)
     {
         if (inputFiles === null || inputFiles.length === 0) {
-            return null;
+            return;
         }
 
         this.viewer.Clear ();
@@ -170,16 +182,28 @@ export class EmbeddedViewer
         });
     }
 
+    /**
+     * Returns the underlying {@link Viewer} object.
+     * @returns The {@link Viewer} object.
+     */
     GetViewer ()
     {
         return this.viewer;
     }
 
+    /**
+     * Returns the underlying {@link Model} object.
+     * @returns The {@link Model} object.
+     */
     GetModel ()
     {
         return this.model;
     }
 
+    /**
+     * This method must be called when the size of the parent element changes to make sure
+     * that the context has the same dimensions as the parent element.
+     */
     Resize ()
     {
         let width = this.parentElement.clientWidth;
