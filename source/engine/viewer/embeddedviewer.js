@@ -16,23 +16,23 @@ export class EmbeddedViewer
      * @param {*} parentElement The parent element for the viewer canvas. It must be an existing
      * DOM element element and it will be the container for the viewer. The size of the viewer
      * will be automatically adjusted to the size of the parent element.
-     * @param {*} parameters Parameter object for embedding.
-     * - camera ({@link Camera}): Camera properties to use. If not specified, the default camera will be used and
+     * @param {Object} parameters Parameters for embedding.
+     * @param {Camera} [parameters.camera] Camera to use. If not specified, the default camera will be used and
      * the model will be fitted to the window.
-     * - cameraMode ({@link CameraMode}): Either CameraMode.Perspective or CameraMode.Orthographic. The
+     * @param {CameraMode} [parameters.cameraMode] Either CameraMode.Perspective or CameraMode.Orthographic. The
      * default is perspective.
-     * - backgroundColor ({@link RGBAColor}): Background color of the canvas.
-     * - defaultColor ({@link RGBColor}): Default color of the model. It has effect only if the imported model
+     * @param {RGBAColor} [parameters.backgroundColor] Background color of the canvas.
+     * @param {RGBColor} [parameters.defaultColor] Default color of the model. It has effect only if the imported model
      * doesn't specify any color.
-     * - edgeSettings (Object):
-     *   - showEdges (Boolean): Show edges.
-     *   - edgeColor ({@link RGBColor}): Color of the edges.
-     *   - edgeThreshold (Number): Minimum angle between faces to show edges between them.
-     * - environmentSettings (Object):
-     *   - environmentMap (String[]): Urls of the environment map images in this order: posx, negx, posy, negy, posz, negz.
-     *   - backgroundIsEnvMap (Boolean): Use background as environment map.
-     * - onModelLoaded (Function): Callback that is called when to model is fully loaded.
-     */
+     * @param {Object} [parameters.edgeSettings] Edge settings.
+     * @param {Boolean} [parameters.edgeSettings.showEdges] Show edges.
+     * @param {RGBColor} [parameters.edgeSettings.edgeColor] Color of the edges.
+     * @param {Number} [parameters.edgeSettings.edgeThreshold] Minimum angle between faces to show edges between them.
+     * @param {Object} [parameters.environmentSettings] Environment settings.
+     * @param {String[]} [parameters.environmentSettings.environmentMap] Urls of the environment map images in this order: posx, negx, posy, negy, posz, negz.
+     * @param {Boolean} [parameters.environmentSettings.backgroundIsEnvMap] Use background as environment map.
+     * @param {Function} [parameters.onModelLoaded] Callback that is called when to model with all of the textures is fully loaded.
+    */
     constructor (parentElement, parameters)
     {
         this.parentElement = parentElement;
@@ -83,7 +83,8 @@ export class EmbeddedViewer
 
     /**
      * Loads the model based on a list of urls. The list must contain the main model file
-     * and all of the referenced files.
+     * and all of the referenced files. For example in case of an obj file the list must contain
+     * the corresponding mtl file, too.
      * @param {String[]} modelUrls Url list of model files.
      */
     LoadModelFromUrlList (modelUrls)
