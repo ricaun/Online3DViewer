@@ -3,7 +3,7 @@
 		"include": ["source"]
 	},
     "opts": {
-        "template": "node_modules/docdash/",
+        "template": "node_modules/ink-docstrap/template/",
         "encoding": "utf8",
         "destination": "build/docs/",
         "recurse": true,
@@ -21,8 +21,9 @@
         }
 	},
     "templates": {
-        "default": {
-            "includeDate": false
-        }
+        "includeDate": false,
+        "theme": "flatly",
+        "navType" : "inline",
+        "sort" : false
     }
 }
