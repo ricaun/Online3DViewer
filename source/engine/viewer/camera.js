@@ -1,8 +1,17 @@
 import { CoordIsEqual3D } from '../geometry/coord3d.js';
 import { IsEqual } from '../geometry/geometry.js';
 
+/**
+ * Class to store parameters of the camera.
+ */
 export class Camera
 {
+    /**
+     * @param {Coord3D} eye Eye position.
+     * @param {Coord3D} center Center position. Sometimes it's called target or look at position.
+     * @param {Coord3D} up Up vector.
+     * @param {number} fov Field of view in degrees.
+     */
     constructor (eye, center, up, fov)
     {
         this.eye = eye;
@@ -11,6 +20,10 @@ export class Camera
         this.fov = fov;
     }
 
+    /**
+     * Creates a clone of the object.
+     * @returns {Camera} The cloned object.
+     */
     Clone ()
     {
         return new Camera (

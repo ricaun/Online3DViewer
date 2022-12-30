@@ -7,16 +7,16 @@ import { ParameterConverter } from '../parameters/parameterlist.js';
 import { ThreeModelLoader } from '../threejs/threemodelloader.js';
 import { Viewer } from './viewer.js';
 
-/** ------------------------------------------------------------------------------------------------
+/**
  * This is the main object for embedding the viewer on a website.
  */
 export class EmbeddedViewer
 {
-    /** --------------------------------------------------------------------------------------------
+    /**
      * @param {Element} parentElement The parent element for the viewer canvas. It must be an
      * existing DOM element and it will be the container for the viewer. The size of the viewer will
      * be automatically adjusted to the size of the parent element.
-     * @param {Object} parameters Parameters for embedding.
+     * @param {object} parameters Parameters for embedding.
      * @param {Camera} [parameters.camera] Camera to use. If not specified, the default camera will
      * be used and the model will be fitted to the window.
      * @param {CameraMode} [parameters.cameraMode] Either CameraMode.Perspective or
@@ -24,17 +24,17 @@ export class EmbeddedViewer
      * @param {RGBAColor} [parameters.backgroundColor] Background color of the canvas.
      * @param {RGBColor} [parameters.defaultColor] Default color of the model. It has effect only
      * if the imported model doesn't specify any color.
-     * @param {Object} [parameters.edgeSettings] Edge settings.
-     * @param {Boolean} [parameters.edgeSettings.showEdges] Show edges.
+     * @param {object} [parameters.edgeSettings] Edge settings.
+     * @param {boolean} [parameters.edgeSettings.showEdges] Show edges.
      * @param {RGBColor} [parameters.edgeSettings.edgeColor] Color of the edges.
-     * @param {Number} [parameters.edgeSettings.edgeThreshold] Minimum angle between faces to show
+     * @param {number} [parameters.edgeSettings.edgeThreshold] Minimum angle between faces to show
      * edges between them.
-     * @param {Object} [parameters.environmentSettings] Environment settings.
-     * @param {String[]} [parameters.environmentSettings.environmentMap] Urls of the environment map
+     * @param {object} [parameters.environmentSettings] Environment settings.
+     * @param {string[]} [parameters.environmentSettings.environmentMap] Urls of the environment map
      * images in this order: posx, negx, posy, negy, posz, negz.
-     * @param {Boolean} [parameters.environmentSettings.backgroundIsEnvMap] Use background as
+     * @param {boolean} [parameters.environmentSettings.backgroundIsEnvMap] Use background as
      * environment map.
-     * @param {Function} [parameters.onModelLoaded] Callback that is called when to model with all
+     * @param {function} [parameters.onModelLoaded] Callback that is called when to model with all
      * of the textures is fully loaded.
     */
     constructor (parentElement, parameters)
@@ -85,11 +85,11 @@ export class EmbeddedViewer
         });
     }
 
-    /** --------------------------------------------------------------------------------------------
+    /**
      * Loads the model based on a list of urls. The list must contain the main model file and all
      * of the referenced files. For example in case of an obj file the list must contain the
      * corresponding mtl and texture files, too.
-     * @param {String[]} modelUrls Url list of model files.
+     * @param {string[]} modelUrls Url list of model files.
      */
     LoadModelFromUrlList (modelUrls)
     {
@@ -98,7 +98,7 @@ export class EmbeddedViewer
         this.LoadModelFromInputFiles (inputFiles);
     }
 
-    /** --------------------------------------------------------------------------------------------
+    /**
      * Loads the model based on a file list. The list must contain the main model file and all of
      * the referenced files. You must use this method used when you are using a file picker to
      * select files from your computer.
@@ -110,7 +110,7 @@ export class EmbeddedViewer
         this.LoadModelFromInputFiles (inputFiles);
     }
 
-    /** --------------------------------------------------------------------------------------------
+    /**
      * Loads the model based on a list of {@link InputFile} objects. This method is used
      * internally, you should use [LoadModelFromUrlList]{@link EmbeddedViewer#LoadModelFromUrlList}
      * or [LoadModelFromFileList]{@link EmbeddedViewer#LoadModelFromFileList} instead.
@@ -187,7 +187,7 @@ export class EmbeddedViewer
         });
     }
 
-    /** --------------------------------------------------------------------------------------------
+    /**
      * Returns the underlying Viewer object.
      * @returns {Viewer} The Viewer object.
      */
@@ -196,7 +196,7 @@ export class EmbeddedViewer
         return this.viewer;
     }
 
-    /** --------------------------------------------------------------------------------------------
+    /**
      * Returns the underlying Model object.
      * @returns {Model} The Model object.
      */
@@ -205,7 +205,7 @@ export class EmbeddedViewer
         return this.model;
     }
 
-    /** --------------------------------------------------------------------------------------------
+    /**
      * This method must be called when the size of the parent element changes to make sure that the
      * context has the same dimensions as the parent element.
      */
@@ -216,6 +216,9 @@ export class EmbeddedViewer
         this.viewer.Resize (width, height);
     }
 
+    /**
+     * Frees up all memory that is allocated by the viewer.
+     */
     Destroy ()
     {
         this.modelLoader.Destroy ();
