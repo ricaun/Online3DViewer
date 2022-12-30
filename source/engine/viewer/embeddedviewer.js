@@ -17,13 +17,10 @@ export class EmbeddedViewer
      * DOM element element and it will be the container for the viewer. The size of the viewer
      * will be automatically adjusted to the size of the parent element.
      * @param {Object} parameters Parameters for embedding.
-     * @param {Camera} [parameters.camera] Camera to use. If not specified, the default camera will be used and
-     * the model will be fitted to the window.
-     * @param {CameraMode} [parameters.cameraMode] Either CameraMode.Perspective or CameraMode.Orthographic. The
-     * default is perspective.
+     * @param {Camera} [parameters.camera] Camera to use. If not specified, the default camera will be used and the model will be fitted to the window.
+     * @param {CameraMode} [parameters.cameraMode] Either CameraMode.Perspective or CameraMode.Orthographic. The default is perspective.
      * @param {RGBAColor} [parameters.backgroundColor] Background color of the canvas.
-     * @param {RGBColor} [parameters.defaultColor] Default color of the model. It has effect only if the imported model
-     * doesn't specify any color.
+     * @param {RGBColor} [parameters.defaultColor] Default color of the model. It has effect only if the imported model doesn't specify any color.
      * @param {Object} [parameters.edgeSettings] Edge settings.
      * @param {Boolean} [parameters.edgeSettings.showEdges] Show edges.
      * @param {RGBColor} [parameters.edgeSettings.edgeColor] Color of the edges.
