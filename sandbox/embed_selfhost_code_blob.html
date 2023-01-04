@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no">
+
+	<title>Online 3D Viewer</title>
+
+	<script type="text/javascript" src="../build/o3dv.min-dev.js"></script>
+
+    <style>
+        div.online_3d_viewer
+        {
+            float: left;
+            border: 1px solid #eeeeee;
+            width: 640px;
+            height: 480px;
+        }
+    </style>
+
+    <script type='text/javascript'>
+        window.addEventListener ('load', () => {
+            // get the parent element of the viewer
+            let parentDiv = document.getElementById ('viewer');
+
+            // initialize the viewer with the parent element and some parameters
+            let viewer = new OV.EmbeddedViewer (parentDiv);
+
+            // load a model providing model blob
+            viewer.LoadModelFromBlob (
+                'Cube.bim', '{"schema_version":"1.0.0","meshes":[{"mesh_id":0,"coordinates":[0.0,0.0,0.0,10.0,0.0,0.0,10.0,0.0,10.0,0.0,0.0,10.0,0.0,10.0,0.0,10.0,10.0,0.0,10.0,10.0,10.0,0.0,10.0,10.0],"indices":[0,1,2,0,2,3,0,1,4,1,4,5,0,4,3,4,3,7,1,2,5,2,5,6,2,3,7,2,6,7,4,5,7,5,6,7]}],"elements":[{"mesh_id":0,"vector":{"x":100.0,"y":100.0,"z":100.0},"rotation":{"qx":0.0,"qy":0.0,"qz":0.0,"qw":1.0},"guid":"8501a5e3-4709-47d8-bd5d-33d745a435d5","type":"Brick","color":{"r":0,"g":0,"b":200,"a":255},"info":{"Name":"Cube"}}]}'
+            );
+        });
+    </script>
+</head>
+
+<body>
+    <div class="online_3d_viewer" id="viewer">
+    </div>
+</body>
+
+</html>

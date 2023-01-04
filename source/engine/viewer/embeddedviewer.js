@@ -1,6 +1,6 @@
 import { IsDefined } from '../core/core.js';
 import { Direction } from '../geometry/geometry.js';
-import { InputFilesFromFileObjects, InputFilesFromUrls } from '../import/importerfiles.js';
+import { InputFilesFromFileObjects, InputFilesFromUrls, InputFileFromBlob } from '../import/importerfiles.js';
 import { ImportErrorCode, ImportSettings } from '../import/importer.js';
 import { TransformFileHostUrls } from '../io/fileutils.js';
 import { ParameterConverter } from '../parameters/parameterlist.js';
@@ -67,6 +67,12 @@ export class EmbeddedViewer
     LoadModelFromFileList (fileList)
     {
         let inputFiles = InputFilesFromFileObjects (fileList);
+        this.LoadModelFromInputFiles (inputFiles);
+    }
+
+    LoadModelFromBlob (modelName, modelContent)
+    {
+        let inputFiles = InputFileFromBlob (modelName, modelContent);
         this.LoadModelFromInputFiles (inputFiles);
     }
 

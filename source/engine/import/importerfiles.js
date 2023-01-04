@@ -1,5 +1,5 @@
 import { RunTasks } from '../core/taskrunner.js';
-import { FileSource, GetFileExtension, GetFileName, ReadFile, RequestUrl } from '../io/fileutils.js';
+import { FileSource, GetFileExtension, GetFileName, ReadFile, RequestUrl, ReadBlob } from '../io/fileutils.js';
 
 export class InputFile
 {
@@ -28,6 +28,15 @@ export function InputFilesFromFileObjects (fileObjects)
         let fileName = GetFileName (fileObject.name);
         inputFiles.push (new InputFile (fileName, FileSource.File, fileObject));
     }
+    return inputFiles;
+}
+
+export function InputFileFromBlob (modelName, modelContent)
+{
+    let inputFiles = [];
+    let fileName = GetFileName (modelName);
+    console.log(modelContent);
+    inputFiles.push (new InputFile (fileName, FileSource.Blob, modelContent));
     return inputFiles;
 }
 
@@ -132,6 +141,7 @@ export class ImporterFileList
 
     GetFileContent (file, callbacks)
     {
+        console.log(file);
         if (file.content !== null) {
             callbacks.onReady ();
             return;
@@ -141,6 +151,8 @@ export class ImporterFileList
             loaderPromise = RequestUrl (file.data, callbacks.onProgress);
         } else if (file.source === FileSource.File) {
             loaderPromise = ReadFile (file.data, callbacks.onProgress);
+        } else if (file.source === FileSource.Blob) {
+            loaderPromise = ReadBlob (file.data, callbacks.onProgress);
         } else {
             callbacks.onReady ();
             return;

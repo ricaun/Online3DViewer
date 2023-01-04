@@ -27,7 +27,7 @@ import { Importer3ds } from './import/importer3ds.js';
 import { ImporterBase } from './import/importerbase.js';
 import { ImporterBim } from './import/importerbim.js';
 import { ImporterFcstd } from './import/importerfcstd.js';
-import { InputFile, ImporterFile, ImporterFileList, InputFilesFromUrls, InputFilesFromFileObjects } from './import/importerfiles.js';
+import { InputFile, ImporterFile, ImporterFileList, InputFilesFromUrls, InputFilesFromFileObjects, InputFileFromBlob } from './import/importerfiles.js';
 import { ImporterGltf } from './import/importergltf.js';
 import { ImporterIfc } from './import/importerifc.js';
 import { ImporterObj } from './import/importerobj.js';
@@ -42,7 +42,7 @@ import { BinaryReader } from './io/binaryreader.js';
 import { BinaryWriter } from './io/binarywriter.js';
 import { ArrayBufferToUtf8String, ArrayBufferToAsciiString, AsciiStringToArrayBuffer, Utf8StringToArrayBuffer, Base64DataURIToArrayBuffer, GetFileExtensionFromMimeType, CreateObjectUrl, CreateObjectUrlWithMimeType, RevokeObjectUrl } from './io/bufferutils.js';
 import { SetExternalLibLocation, GetExternalLibPath, LoadExternalLibrary } from './io/externallibs.js';
-import { GetFileName, GetFileExtension, RequestUrl, ReadFile, TransformFileHostUrls, IsUrl, FileSource, FileFormat } from './io/fileutils.js';
+import { GetFileName, GetFileExtension, RequestUrl, ReadFile, ReadBlob, TransformFileHostUrls, IsUrl, FileSource, FileFormat } from './io/fileutils.js';
 import { TextWriter } from './io/textwriter.js';
 import { RGBColor, RGBAColor, ColorComponentFromFloat, ColorComponentToFloat, RGBColorFromFloatComponents, SRGBToLinear, LinearToSRGB, IntegerToHexString, RGBColorToHexString, RGBAColorToHexString, HexStringToRGBColor, ArrayToRGBColor, RGBColorIsEqual } from './model/color.js';
 import { GeneratorParams, Generator, GeneratorHelper, GenerateCuboid, GenerateCone, GenerateCylinder, GenerateSphere, GeneratePlatonicSolid } from './model/generator.js';
@@ -158,6 +158,7 @@ export {
     ImporterFileList,
     InputFilesFromUrls,
     InputFilesFromFileObjects,
+    InputFileFromBlob,
     ImporterGltf,
     ImporterIfc,
     ImporterObj,
@@ -196,6 +197,7 @@ export {
     GetFileExtension,
     RequestUrl,
     ReadFile,
+    ReadBlob,
     TransformFileHostUrls,
     IsUrl,
     FileSource,

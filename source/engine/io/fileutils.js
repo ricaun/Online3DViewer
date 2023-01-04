@@ -2,7 +2,8 @@ export const FileSource =
 {
     Url : 1,
     File : 2,
-	Decompressed : 3
+	Decompressed : 3,
+	Blob : 4,
 };
 
 export const FileFormat =
@@ -86,6 +87,32 @@ export function ReadFile (file, onProgress)
 		};
 
 		reader.readAsArrayBuffer (file);
+	});
+}
+
+export function ReadBlob (data, onProgress)
+{
+	return new Promise ((resolve, reject) => {
+		let blob = new Blob([data]);
+		console.log(data);
+
+		let reader = new FileReader();
+
+		reader.onprogress = (event) => {
+			onProgress (event.loaded, event.total);
+		};
+
+		reader.onloadend = (event) => {
+			if (event.target.readyState === FileReader.DONE) {
+				resolve (event.target.result);
+			}
+		};
+
+		reader.onerror = () => {
+			reject ();
+		};
+
+		reader.readAsArrayBuffer(blob);
 	});
 }
 
