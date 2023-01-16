@@ -69,12 +69,16 @@ export class ImporterBim extends ImporterBase
 
     ImportElement (bimElement)
     {
-        let defaultMaterialIndex = this.colorToMaterial.GetMaterialIndex (
-            bimElement.color.r,
-            bimElement.color.g,
-            bimElement.color.b,
-            bimElement.color.a
-        );
+        let defaultMaterialIndex = null;
+        if (bimElement.color)
+        {
+            defaultMaterialIndex = this.colorToMaterial.GetMaterialIndex (
+                bimElement.color.r,
+                bimElement.color.g,
+                bimElement.color.b,
+                bimElement.color.a
+            );
+        }
 
         let rootNode = this.model.GetRootNode ();
 
@@ -89,8 +93,22 @@ export class ImporterBim extends ImporterBase
                 );
                 return faceMaterialIndex;
             } else {
-                return defaultMaterialIndex;
+                if (defaultMaterialIndex)
+                {
+                    return defaultMaterialIndex;
+                }
+                else if (bimMesh.colors)
+                {
+                    let materialIndex = this.colorToMaterial.GetMaterialIndex (
+                        bimMesh.colors[triangleIndex * 4 + 0],
+                        bimMesh.colors[triangleIndex * 4 + 1],
+                        bimMesh.colors[triangleIndex * 4 + 2],
+                        bimMesh.colors[triangleIndex * 4 + 3]
+                    );
+                    return materialIndex;
+                }
             }
+            return this.colorToMaterial.GetMaterialIndex(200,200,200,255);
         });
         let meshIndex = this.model.AddMesh (mesh);
 
