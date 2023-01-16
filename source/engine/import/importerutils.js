@@ -1,6 +1,6 @@
 import { IsLower } from '../geometry/geometry.js';
 import { PhongMaterial } from '../model/material.js';
-import { RGBColor, IntegerToHexString } from '../model/color.js';
+import { RGBColor, IntegerToHexString, RGBAColor } from '../model/color.js';
 
 export function NameFromLine (line, startIndex, commentChar)
 {
@@ -97,6 +97,36 @@ export class ColorToMaterialConverter
             let materialIndex = this.model.AddMaterial (material);
             this.colorToMaterialIndex.set (colorKey, materialIndex);
             return materialIndex;
+		}
+	}
+}
+
+export class ColorToVertexColorsConverter
+{
+	constructor (mesh)
+	{
+		this.mesh = mesh;
+		this.colorToVertexColorsIndex = new Map ();
+	}
+
+	GetVertexColorIndex (r, g, b, a)
+	{
+		let colorKey =
+			IntegerToHexString (r) +
+			IntegerToHexString (g) +
+			IntegerToHexString (b);
+		let hasAlpha = (a !== undefined && a !== null);
+		if (hasAlpha) {
+			colorKey += IntegerToHexString (a);
+		}
+
+		if (this.colorToVertexColorsIndex.has (colorKey)) {
+			return this.colorToVertexColorsIndex.get (colorKey);
+		} else {
+            let color = new RGBAColor (r, g, b, a);
+            let vertexColorIndex = this.mesh.AddVertexColor (color);
+            this.colorToVertexColorsIndex.set (colorKey, vertexColorIndex);
+            return vertexColorIndex;
 		}
 	}
 }

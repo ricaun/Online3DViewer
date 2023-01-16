@@ -9,8 +9,9 @@ import { ImporterBase } from './importerbase.js';
 import { Quaternion } from '../geometry/quaternion.js';
 import { Matrix } from '../geometry/matrix.js';
 import { Transformation } from '../geometry/transformation.js';
-import { ColorToMaterialConverter } from './importerutils.js';
+import { ColorToMaterialConverter, ColorToVertexColorsConverter } from './importerutils.js';
 import { Property, PropertyGroup, PropertyType } from '../model/property.js';
+import { RGBAColor } from '../main.js';
 
 export class ImporterBim extends ImporterBase
 {
@@ -83,33 +84,78 @@ export class ImporterBim extends ImporterBase
         let rootNode = this.model.GetRootNode ();
 
         let bimMesh = this.meshIdToMesh.get (bimElement.mesh_id);
-        let mesh = this.ImportMesh (bimMesh, (triangleIndex) => {
-            if (bimElement.face_colors) {
-                let faceMaterialIndex = this.colorToMaterial.GetMaterialIndex (
-                    bimElement.face_colors[triangleIndex * 4 + 0],
-                    bimElement.face_colors[triangleIndex * 4 + 1],
-                    bimElement.face_colors[triangleIndex * 4 + 2],
-                    bimElement.face_colors[triangleIndex * 4 + 3]
-                );
-                return faceMaterialIndex;
-            } else {
-                if (defaultMaterialIndex)
-                {
+        let mesh = null;
+
+        // 1.0.0 - extension face_colors
+        if (bimElement.face_colors)
+        {
+            mesh = this.ImportMeshMaterial (bimMesh, (triangleIndex) => {
+                if (bimElement.face_colors) {
+                    let faceMaterialIndex = this.colorToMaterial.GetMaterialIndex (
+                        bimElement.face_colors[triangleIndex * 4 + 0],
+                        bimElement.face_colors[triangleIndex * 4 + 1],
+                        bimElement.face_colors[triangleIndex * 4 + 2],
+                        bimElement.face_colors[triangleIndex * 4 + 3]
+                    );
+                    return faceMaterialIndex;
+                }
+                else if (defaultMaterialIndex) {
                     return defaultMaterialIndex;
                 }
-                else if (bimMesh.colors)
-                {
-                    let materialIndex = this.colorToMaterial.GetMaterialIndex (
-                        bimMesh.colors[triangleIndex * 4 + 0],
-                        bimMesh.colors[triangleIndex * 4 + 1],
-                        bimMesh.colors[triangleIndex * 4 + 2],
-                        bimMesh.colors[triangleIndex * 4 + 3]
-                    );
-                    return materialIndex;
-                }
+                return this.colorToMaterial.GetMaterialIndex(200,200,200,255);
+            });
+        }
+
+        // 1.1.0 - colors
+        if (bimMesh.colors)
+        {
+            let indices_length = bimMesh.indices.length;
+            let colors_length = bimMesh.colors.length / 4;
+            console.log(indices_length);
+            console.log(colors_length);
+            console.log("colors")
+            // Vertex Color
+            if (colors_length >= indices_length)
+            {
+                mesh = this.ImportMeshVertexColors (bimMesh, (vertexColorsTriangle) => {
+                    let cc = new RGBAColor (200, 200, 200, 255);
+                    let colors_array = [];
+                    for (let c = 0; c < 3; c+=4) {
+                        var color = new RGBAColor (
+                            bimMesh.colors[vertexColorsTriangle * 12 + 0],
+                            bimMesh.colors[vertexColorsTriangle * 12 + 1],
+                            bimMesh.colors[vertexColorsTriangle * 12 + 2],
+                            bimMesh.colors[vertexColorsTriangle * 12 + 3]
+                        );
+                        colors_array.push(colors_array);
+                    }
+
+                    return colors_array;
+                });
             }
-            return this.colorToMaterial.GetMaterialIndex(200,200,200,255);
-        });
+            else
+            {
+                mesh = this.ImportMeshMaterial (bimMesh, (triangleIndex) => {
+                    if (defaultMaterialIndex)
+                    {
+                        return defaultMaterialIndex;
+                    }
+                    else if (bimMesh.colors)
+                    {
+                        let materialIndex = this.colorToMaterial.GetMaterialIndex (
+                            bimMesh.colors[triangleIndex * 4 + 0],
+                            bimMesh.colors[triangleIndex * 4 + 1],
+                            bimMesh.colors[triangleIndex * 4 + 2],
+                            bimMesh.colors[triangleIndex * 4 + 3]
+                        );
+                        return materialIndex;
+                    }
+                    return this.colorToMaterial.GetMaterialIndex(200,200,200,255);
+                });
+            }
+        }
+
+
         let meshIndex = this.model.AddMesh (mesh);
 
         let elementNode = new Node ();
@@ -141,7 +187,7 @@ export class ImporterBim extends ImporterBase
         return mesh;
     }
 
-    ImportMesh (bimMesh, getMaterialIndex)
+    ImportMeshMaterial (bimMesh, getMaterialIndex)
     {
         let mesh = new Mesh ();
 
@@ -160,6 +206,34 @@ export class ImporterBim extends ImporterBase
                 bimMesh.indices[i + 2]
             );
             triangle.SetMaterial (getMaterialIndex (i / 3));
+            mesh.AddTriangle (triangle);
+        }
+
+        return mesh;
+    }
+
+    ImportMeshVertexColors (bimMesh, getVertexColors)
+    {
+        let mesh = new Mesh ();
+        let colorToVertexColorsConverter = new ColorToVertexColorsConverter(mesh);
+
+        for (let i = 0; i < bimMesh.coordinates.length; i += 3) {
+            mesh.AddVertex (new Coord3D (
+                bimMesh.coordinates[i + 0],
+                bimMesh.coordinates[i + 1],
+                bimMesh.coordinates[i + 2]
+            ));
+        }
+
+        for (let i = 0; i < bimMesh.indices.length; i += 3) {
+            let triangle = new Triangle (
+                bimMesh.indices[i + 0],
+                bimMesh.indices[i + 1],
+                bimMesh.indices[i + 2]
+            );
+            let colors = getVertexColors (i / 3);
+            let color_index = colors.map(color => colorToVertexColorsConverter.GetVertexColorIndex(color));
+            triangle.SetVertexColors (color_index[0],color_index[1],color_index[2]);
             mesh.AddTriangle (triangle);
         }
 
