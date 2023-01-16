@@ -133,26 +133,16 @@ export class ImporterBim extends ImporterBase
                     return colors_array;
                 });
             }
-            else
-            {
-                mesh = this.ImportMeshMaterial (bimMesh, (triangleIndex) => {
-                    if (defaultMaterialIndex)
-                    {
-                        return defaultMaterialIndex;
-                    }
-                    else if (bimMesh.colors)
-                    {
-                        let materialIndex = this.colorToMaterial.GetMaterialIndex (
-                            bimMesh.colors[triangleIndex * 4 + 0],
-                            bimMesh.colors[triangleIndex * 4 + 1],
-                            bimMesh.colors[triangleIndex * 4 + 2],
-                            bimMesh.colors[triangleIndex * 4 + 3]
-                        );
-                        return materialIndex;
-                    }
-                    return this.colorToMaterial.GetMaterialIndex(200,200,200,255);
-                });
-            }
+        }
+        else
+        {
+            mesh = this.ImportMeshMaterial (bimMesh, (triangleIndex) => {
+                if (defaultMaterialIndex)
+                {
+                    return defaultMaterialIndex;
+                }
+                return this.colorToMaterial.GetMaterialIndex(200,200,200,255);
+            });
         }
 
 
